@@ -82,6 +82,23 @@ type Repo interface {
 	// should return nil (and no error) to indicate that no remote schema had
 	// been stored before
 	LoadSchema(ctx context.Context) (*State, error)
+
+	PutClass(ctx context.Context, class []byte, data ClassPayload) error
+
+	DeleteClass(ctx context.Context, class []byte) error
+
+	PutShards(ctx context.Context, class []byte, data []BytesPair) error
+}
+
+type BytesPair struct {
+	Key   []byte
+	Value []byte
+}
+
+type ClassPayload struct {
+	Metadata      []byte
+	ShardingState []byte
+	Shards        []BytesPair
 }
 
 type clusterState interface {

@@ -37,6 +37,18 @@ func (f *fakeRepo) SaveSchema(ctx context.Context, schema State) error {
 	return nil
 }
 
+func (f *fakeRepo) PutClass(ctx context.Context, class []byte, data ClassPayload) error {
+	return nil
+}
+
+func (f *fakeRepo) DeleteClass(ctx context.Context, class []byte) error {
+	return nil
+}
+
+func (f *fakeRepo) PutShards(ctx context.Context, class []byte, data []BytesPair) error {
+	return nil
+}
+
 type fakeAuthorizer struct{}
 
 func (f *fakeAuthorizer) Authorize(principal *models.Principal, verb, resource string) error {
