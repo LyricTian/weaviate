@@ -115,10 +115,29 @@ func (m *Manager) RestoreClass(ctx context.Context, d *backup.ClassDescriptor) e
 	m.state.ShardingState[class.Class].SetLocalName(m.clusterState.LocalName())
 	m.shardingStateLock.Unlock()
 
-	err = m.saveSchema(ctx, nil)
-	if err != nil {
+	// TODO: handle errors and refactor creating payload to a function
+	payload := ClassPayload{}
+	payload.Metadata, _ = json.Marshal(class)
+	if shardingState != nil {
+		ss := *shardingState
+		payload.Shards = make([]BytesPair, len(ss.Physical))
+		i := 0
+		for name, shard := range ss.Physical {
+			data, _ := json.Marshal(shard)
+			payload.Shards[i] = BytesPair{Key: []byte(name), Value: data}
+			i++
+		}
+		ss.Physical = nil
+		payload.ShardingState, _ = json.Marshal(&ss)
+	}
+	// payload.Shards
+	if err := m.repo.PutClass(ctx, []byte(class.Class), payload); err != nil {
 		return err
 	}
+	m.logger.
+		WithField("action", "schema_restore_class").
+		Debugf("restore class %q from schema", class.Class)
+	m.triggerSchemaUpdateCallbacks()
 
 	out := m.migrator.AddClass(ctx, class, shardingState)
 	return out
@@ -209,7 +228,12 @@ func (m *Manager) addClassApplyChanges(ctx context.Context, class *models.Class,
 	m.shardingStateLock.Lock()
 	m.state.ShardingState[class.Class] = shardState
 	m.shardingStateLock.Unlock()
-	return m.saveSchema(ctx, nil)
+
+	m.logger.
+		WithField("action", "schema_add_class").
+		Debugf("add class %q from schema", class.Class)
+
+	return nil
 }
 
 func (m *Manager) setClassDefaults(class *models.Class) {
